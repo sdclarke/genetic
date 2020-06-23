@@ -1,4 +1,4 @@
-module github.com/sdclarke/genetic-dots
+module github.com/sdclarke/genetic
 
 go 1.14
 
