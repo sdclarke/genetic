@@ -6,7 +6,7 @@ import (
 
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/pixelgl"
-	"github.com/sdclarke/genetic-dots/neuralnet"
+	"github.com/sdclarke/genetic"
 
 	"golang.org/x/image/colornames"
 )
@@ -55,8 +55,8 @@ func run() {
 		sprite[i] = pixel.NewSprite(pic[i], pic[i].Bounds())
 	}
 
-	//population := neuralnet.NewPopulation(popSize, win.Bounds().Center(), 500, win.Bounds(), goal)
-	population := neuralnet.NewPopulation(popSize, pixel.V(win.Bounds().W()/2, 10), 200, win.Bounds(), goal)
+	//population := genetic.NewPopulation(popSize, win.Bounds().Center(), 500, win.Bounds(), goal)
+	population := genetic.NewPopulation(popSize, pixel.V(win.Bounds().W()/2, 10), 200, win.Bounds(), goal)
 	moves := make([]pixel.Vec, popSize)
 
 	//last := time.Now()

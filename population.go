@@ -1,4 +1,4 @@
-package neuralnet
+package genetic
 
 import (
 	"errors"
