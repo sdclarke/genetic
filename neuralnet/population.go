@@ -43,7 +43,6 @@ func (p *Population) NewGeneration() *Population {
 	newPopulation.Brains = make([]*Brain, len(p.Brains))
 	fitnessSum := p.calculateFitnessSum()
 	newPopulation.Brains[0] = p.Brains[bestDotIndex].Clone()
-	newPopulation.Brains[0].SetBest()
 	for i := 1; i < len(newPopulation.Brains); i++ {
 		newPopulation.Brains[i] = p.selectParent(fitnessSum).Clone()
 	}

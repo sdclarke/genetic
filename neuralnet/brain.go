@@ -18,11 +18,9 @@ type Brain struct {
 	NextMove      int
 	dead          bool
 	firstMove     bool
-	xBound        float64
-	yBound        float64
+	windowBounds  pixel.Rect
 	reachedGoal   bool
 	Fitness       float64
-	best          bool
 }
 
 func NewBrain(position pixel.Vec, moves int, windowBounds pixel.Rect, goal pixel.Vec) *Brain {
@@ -36,8 +34,7 @@ func NewBrain(position pixel.Vec, moves int, windowBounds pixel.Rect, goal pixel
 		NextMove:      0,
 		dead:          false,
 		firstMove:     true,
-		xBound:        windowBounds.W() - 2,
-		yBound:        windowBounds.H() - 2,
+		windowBounds:  windowBounds,
 	}
 	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < moves; i++ {
@@ -67,8 +64,8 @@ func (b *Brain) GetNextMove() (pixel.Vec, error) {
 
 	newPosition := b.position.Add(b.velocity)
 	x, y := newPosition.XY()
-	if x < 2 || y < 2 || x > b.xBound || y > b.yBound {
-		return b.GetPosition(), &HitWallError{}
+	if x < 0 || y < 0 || x > b.windowBounds.W() || y > b.windowBounds.H() {
+		return pixel.V(pixel.Clamp(x, 0, b.windowBounds.W()), pixel.Clamp(y, 0, b.windowBounds.H())), &HitWallError{}
 	}
 	b.position = newPosition
 	if dist(b.position, b.goal) < 10 {
@@ -78,7 +75,7 @@ func (b *Brain) GetNextMove() (pixel.Vec, error) {
 }
 
 func (b *Brain) Clone() *Brain {
-	newBrain := NewBrain(b.startPosition, len(b.moves), pixel.R(0, 0, b.xBound+2, b.yBound+2), b.goal)
+	newBrain := NewBrain(b.startPosition, len(b.moves), b.windowBounds, b.goal)
 	for n, move := range b.moves {
 		newBrain.moves[n] = move
 	}
@@ -104,7 +101,7 @@ func (b *Brain) GetPosition() pixel.Vec {
 func (b *Brain) Mutate() {
 	rand.Seed(time.Now().UnixNano())
 	for n, _ := range b.moves {
-		if rand.Float64() < 0.01 {
+		if rand.Float64() < 0.001 {
 			b.moves[n] = pixel.Unit(rand.Float64() * 2 * math.Pi)
 		}
 	}
@@ -124,8 +121,4 @@ func (b *Brain) CalculateFitness() float64 {
 		b.Fitness = 1.0 / (distance * distance)
 	}
 	return b.Fitness
-}
-
-func (b *Brain) SetBest() {
-	b.best = true
 }
