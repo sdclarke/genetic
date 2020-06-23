@@ -7,7 +7,8 @@ game library for golang.
 
 
 To install and run the code simply run the following commands (Assuming
-go is installed, $GOPATH is correctly set and $GOPATH/bin is in $PATH)
+go is installed, `$GOPATH` is correctly set and `$GOPATH/bin` is in
+`$PATH`)
 ```
 go get -u github.com/sdclarke/genetic/cmd/dots
 dots
