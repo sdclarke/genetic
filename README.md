@@ -6,9 +6,10 @@ This code depends on the [pixel](https://github.com/faiface/pixel) 2D
 game library for golang.
 
 
-To install and run the code simply run the following commands
+To install and run the code simply run the following commands (Assuming
+go is installed, $GOPATH is correctly set and $GOPATH/bin is in $PATH)
 ```
 go get -u github.com/sdclarke/genetic/cmd/dots
-go run github.com/sdclarke/genetic/cmd/dots
+dots
 ```
 
