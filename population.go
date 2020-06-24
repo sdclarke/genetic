@@ -19,26 +19,28 @@ func MakeBatch() {
 }
 
 type Population struct {
-	Brains     []*Brain
-	minSteps   int
-	obstacles  []pixel.Rect
-	window     *pixelgl.Window
-	staleness  int
-	drawBest   bool
-	generation int
-	goal       pixel.Vec
+	Brains       []*Brain
+	minSteps     int
+	obstacles    []pixel.Rect
+	window       *pixelgl.Window
+	staleness    int
+	drawBest     bool
+	generation   int
+	goal         pixel.Vec
+	mutationRate float64
 }
 
 func NewPopulation(size int, position pixel.Vec, moves int, bounds pixel.Rect, goal pixel.Vec, mutationRate float64, obstacles []pixel.Rect, window *pixelgl.Window) *Population {
 	pop := &Population{
-		minSteps:  moves,
-		obstacles: obstacles,
-		window:    window,
-		goal:      goal,
+		minSteps:     moves,
+		obstacles:    obstacles,
+		window:       window,
+		goal:         goal,
+		mutationRate: mutationRate,
 	}
 	pop.Brains = make([]*Brain, size)
 	for i := 0; i < size; i++ {
-		pop.Brains[i] = NewBrain(position, moves, bounds, mutationRate, false)
+		pop.Brains[i] = NewBrain(position, moves, bounds)
 	}
 	return pop
 }
@@ -48,7 +50,7 @@ func (p *Population) mutate() {
 		if n == 0 {
 			continue
 		}
-		brain.Mutate()
+		brain.Mutate(p.mutationRate)
 	}
 }
 
@@ -57,21 +59,23 @@ func (p *Population) NewGeneration() *Population {
 	p.calculateFitnesses()
 	bestDotIndex := p.getBestDotIndex()
 	newPopulation := &Population{
-		minSteps:   p.minSteps,
-		obstacles:  p.obstacles,
-		window:     p.window,
-		generation: p.generation + 1,
-		drawBest:   p.drawBest,
-		goal:       p.goal,
+		minSteps:     p.minSteps,
+		obstacles:    p.obstacles,
+		window:       p.window,
+		generation:   p.generation + 1,
+		drawBest:     p.drawBest,
+		goal:         p.goal,
+		mutationRate: p.mutationRate,
 	}
 	if bestDotIndex == 0 {
 		newPopulation.staleness = p.staleness + 1
 	}
 	newPopulation.Brains = make([]*Brain, len(p.Brains))
 	fitnessSum := p.calculateFitnessSum()
-	newPopulation.Brains[0] = p.Brains[bestDotIndex].Clone(true)
+	newPopulation.Brains[0] = p.Brains[bestDotIndex].Clone()
+	newPopulation.Brains[0].SetBest(true)
 	for i := 1; i < len(newPopulation.Brains); i++ {
-		newPopulation.Brains[i] = p.selectParent(fitnessSum).Clone(false)
+		newPopulation.Brains[i] = p.selectParent(fitnessSum).Clone()
 	}
 
 	newPopulation.mutate()

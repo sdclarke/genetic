@@ -41,12 +41,11 @@ type Brain struct {
 	windowBounds  pixel.Rect
 	reachedGoal   bool
 	Fitness       float64
-	mutationRate  float64
 	sprite        *pixel.Sprite
 	best          bool
 }
 
-func NewBrain(position pixel.Vec, moves int, windowBounds pixel.Rect, mutationRate float64, best bool) *Brain {
+func NewBrain(position pixel.Vec, moves int, windowBounds pixel.Rect) *Brain {
 	brain := &Brain{
 		position:      position,
 		startPosition: position,
@@ -57,13 +56,8 @@ func NewBrain(position pixel.Vec, moves int, windowBounds pixel.Rect, mutationRa
 		dead:          false,
 		firstMove:     true,
 		windowBounds:  windowBounds,
-		mutationRate:  mutationRate,
-		best:          best,
 	}
 	brain.sprite = blackSprite
-	if best {
-		brain.sprite = greenSprite
-	}
 
 	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < moves; i++ {
@@ -110,8 +104,8 @@ func (b *Brain) Matrix() pixel.Matrix {
 	return mat.Moved(b.position)
 }
 
-func (b *Brain) Clone(best bool) *Brain {
-	newBrain := NewBrain(b.startPosition, len(b.moves), b.windowBounds, b.mutationRate, best)
+func (b *Brain) Clone() *Brain {
+	newBrain := NewBrain(b.startPosition, len(b.moves), b.windowBounds)
 	for n, move := range b.moves {
 		newBrain.moves[n] = move
 	}
@@ -138,10 +132,10 @@ func (b *Brain) SetPosition(position pixel.Vec) {
 	b.position = position
 }
 
-func (b *Brain) Mutate() {
+func (b *Brain) Mutate(mutationRate float64) {
 	rand.Seed(time.Now().UnixNano())
 	for n, _ := range b.moves {
-		if rand.Float64() < b.mutationRate {
+		if rand.Float64() < mutationRate {
 			b.moves[n] = pixel.Unit(rand.Float64() * 2 * math.Pi)
 		}
 	}
@@ -165,6 +159,15 @@ func (b *Brain) CalculateFitness(goal pixel.Vec) float64 {
 
 func (b *Brain) GetSprite() *pixel.Sprite {
 	return b.sprite
+}
+
+func (b *Brain) SetBest(best bool) {
+	b.best = best
+	if best {
+		b.sprite = greenSprite
+	} else {
+		b.sprite = blackSprite
+	}
 }
 
 func (b *Brain) IsBest() bool {
