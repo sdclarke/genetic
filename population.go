@@ -143,7 +143,7 @@ func (p *Population) Update() {
 				brain.Kill()
 			}
 		}
-		if !p.drawBest || brain.IsBest() || p.generation == 0 {
+		if !p.drawBest || brain.IsBest() {
 			brain.GetSprite().Draw(p.window, matrix)
 		}
 	}
