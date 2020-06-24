@@ -80,22 +80,8 @@ func run() {
 	}
 	goalSprite := pixel.NewSprite(goalPic, goalPic.Bounds())
 
-	//pic := make([]*pixel.PictureData, popSize)
-	//sprite := make([]*pixel.Sprite, popSize)
-
-	//for i := 0; i < popSize; i++ {
-	//pic[i] = pixel.MakePictureData(pixel.R(0, 0, 5, 5))
-	//for n := range pic[i].Pix {
-	//pic[i].Pix[n] = colornames.Red
-	//}
-
-	//sprite[i] = pixel.NewSprite(pic[i], pic[i].Bounds())
-	//}
-
-	//population := genetic.NewPopulation(popSize, win.Bounds().Center(), 500, win.Bounds(), goal)
 	population := genetic.NewPopulation(popSize, pixel.V(win.Bounds().W()/2, 10), 200, win.Bounds(), goal, mutationRate, obstacles, win)
 	population.SetDrawBest(drawOnlyBest)
-	//moves := make([]pixel.Vec, popSize)
 
 	for !win.Closed() {
 		win.Clear(colornames.White)
@@ -118,5 +104,6 @@ func run() {
 
 func main() {
 	genetic.MakeSprites()
+	genetic.MakeBatch()
 	pixelgl.Run(run)
 }

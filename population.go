@@ -10,6 +10,14 @@ import (
 	"github.com/faiface/pixel/pixelgl"
 )
 
+var (
+	batch *pixel.Batch
+)
+
+func MakeBatch() {
+	batch = pixel.NewBatch(&pixel.TrianglesData{}, blackPic)
+}
+
 type Population struct {
 	Brains     []*Brain
 	minSteps   int
@@ -18,6 +26,7 @@ type Population struct {
 	staleness  int
 	drawBest   bool
 	generation int
+	goal       pixel.Vec
 }
 
 func NewPopulation(size int, position pixel.Vec, moves int, bounds pixel.Rect, goal pixel.Vec, mutationRate float64, obstacles []pixel.Rect, window *pixelgl.Window) *Population {
@@ -25,10 +34,11 @@ func NewPopulation(size int, position pixel.Vec, moves int, bounds pixel.Rect, g
 		minSteps:  moves,
 		obstacles: obstacles,
 		window:    window,
+		goal:      goal,
 	}
 	pop.Brains = make([]*Brain, size)
 	for i := 0; i < size; i++ {
-		pop.Brains[i] = NewBrain(position, moves, bounds, goal, mutationRate, false)
+		pop.Brains[i] = NewBrain(position, moves, bounds, mutationRate, false)
 	}
 	return pop
 }
@@ -52,6 +62,7 @@ func (p *Population) NewGeneration() *Population {
 		window:     p.window,
 		generation: p.generation + 1,
 		drawBest:   p.drawBest,
+		goal:       p.goal,
 	}
 	if bestDotIndex == 0 {
 		newPopulation.staleness = p.staleness + 1
@@ -59,14 +70,8 @@ func (p *Population) NewGeneration() *Population {
 	newPopulation.Brains = make([]*Brain, len(p.Brains))
 	fitnessSum := p.calculateFitnessSum()
 	newPopulation.Brains[0] = p.Brains[bestDotIndex].Clone(true)
-	if p.staleness > 5 && bestDotIndex == 0 {
-		for i := 1; i < len(newPopulation.Brains); i++ {
-			newPopulation.Brains[i] = p.selectParent(fitnessSum, true).Clone(false)
-		}
-	} else {
-		for i := 1; i < len(newPopulation.Brains); i++ {
-			newPopulation.Brains[i] = p.selectParent(fitnessSum, false).Clone(false)
-		}
+	for i := 1; i < len(newPopulation.Brains); i++ {
+		newPopulation.Brains[i] = p.selectParent(fitnessSum).Clone(false)
 	}
 
 	newPopulation.mutate()
@@ -75,7 +80,7 @@ func (p *Population) NewGeneration() *Population {
 
 func (p *Population) calculateFitnesses() {
 	for _, brain := range p.Brains {
-		brain.CalculateFitness()
+		brain.CalculateFitness(p.goal)
 	}
 }
 
@@ -102,10 +107,7 @@ func (p *Population) calculateFitnessSum() float64 {
 	return total
 }
 
-func (p *Population) selectParent(fitnessSum float64, stale bool) *Brain {
-	if stale {
-		return p.Brains[0]
-	}
+func (p *Population) selectParent(fitnessSum float64) *Brain {
 	rand.Seed(time.Now().UnixNano())
 	randomNum := rand.Float64() * fitnessSum
 
@@ -122,6 +124,7 @@ func (p *Population) selectParent(fitnessSum float64, stale bool) *Brain {
 }
 
 func (p *Population) Update() {
+	batch.Clear()
 	for _, brain := range p.Brains {
 		if brain.NextMove > p.minSteps {
 			brain.Kill()
@@ -129,24 +132,36 @@ func (p *Population) Update() {
 		matrix, err := brain.GetNextMove()
 		if err != nil {
 			var noMovesErr *NoMovesError
-			var hitWallErr *HitWallError
 			if errors.As(err, &noMovesErr) {
-				brain.Kill()
-			} else if errors.As(err, &hitWallErr) {
 				brain.Kill()
 			} else {
 				log.Fatalf("Unexpected error: %#v", err)
 			}
 		}
+		brainPos := brain.GetPosition()
+		x, y := brainPos.XY()
+		if x < 0 || y < 0 || x > p.window.Bounds().W() || y > p.window.Bounds().H() {
+			brain.SetPosition(pixel.V(pixel.Clamp(x, 0, p.window.Bounds().W()), pixel.Clamp(y, 0, p.window.Bounds().H())))
+			matrix = brain.Matrix()
+			brain.Kill()
+		}
+		if dist(brainPos, p.goal) < 10 {
+			brain.SetReachedGoal(true)
+		}
 		for _, obstacle := range p.obstacles {
-			if obstacle.Contains(brain.GetPosition()) {
+			if obstacle.Contains(brainPos) {
 				brain.Kill()
 			}
 		}
-		if !p.drawBest || brain.IsBest() {
-			brain.GetSprite().Draw(p.window, matrix)
+		if best := brain.IsBest(); !p.drawBest || best {
+			if best {
+				brain.GetSprite().Draw(p.window, matrix)
+			} else {
+				brain.GetSprite().Draw(batch, matrix)
+			}
 		}
 	}
+	batch.Draw(p.window)
 }
 
 func (p *Population) AllDead() bool {

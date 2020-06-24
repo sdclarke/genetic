@@ -10,18 +10,19 @@ import (
 )
 
 var (
+	blackPic    *pixel.PictureData
 	blackSprite *pixel.Sprite
 	greenSprite *pixel.Sprite
 )
 
 func MakeSprites() {
-	pic := pixel.MakePictureData(pixel.R(0, 0, 5, 5))
-	for n := range pic.Pix {
-		pic.Pix[n] = colornames.Black
+	blackPic = pixel.MakePictureData(pixel.R(0, 0, 5, 5))
+	for n := range blackPic.Pix {
+		blackPic.Pix[n] = colornames.Black
 	}
-	blackSprite = pixel.NewSprite(pic, pic.Bounds())
+	blackSprite = pixel.NewSprite(blackPic, blackPic.Bounds())
 
-	pic = pixel.MakePictureData(pixel.R(0, 0, 20, 20))
+	pic := pixel.MakePictureData(pixel.R(0, 0, 20, 20))
 	for n := range pic.Pix {
 		pic.Pix[n] = colornames.Green
 	}
@@ -33,7 +34,6 @@ type Brain struct {
 	startPosition pixel.Vec
 	velocity      pixel.Vec
 	acceleration  pixel.Vec
-	goal          pixel.Vec
 	moves         []pixel.Vec
 	NextMove      int
 	dead          bool
@@ -46,13 +46,12 @@ type Brain struct {
 	best          bool
 }
 
-func NewBrain(position pixel.Vec, moves int, windowBounds pixel.Rect, goal pixel.Vec, mutationRate float64, best bool) *Brain {
+func NewBrain(position pixel.Vec, moves int, windowBounds pixel.Rect, mutationRate float64, best bool) *Brain {
 	brain := &Brain{
 		position:      position,
 		startPosition: position,
 		velocity:      pixel.V(0, 0),
 		acceleration:  pixel.V(0, 0),
-		goal:          goal,
 		moves:         make([]pixel.Vec, moves),
 		NextMove:      0,
 		dead:          false,
@@ -75,14 +74,14 @@ func NewBrain(position pixel.Vec, moves int, windowBounds pixel.Rect, goal pixel
 
 func (b *Brain) GetNextMove() (pixel.Matrix, error) {
 	if b.dead || b.reachedGoal {
-		return b.matrix(), nil
+		return b.Matrix(), nil
 	}
 	if b.NextMove >= len(b.moves) {
-		return b.matrix(), &NoMovesError{}
+		return b.Matrix(), &NoMovesError{}
 	}
 	if b.firstMove {
 		b.firstMove = false
-		return b.matrix(), nil
+		return b.Matrix(), nil
 	}
 	b.acceleration = b.moves[b.NextMove]
 	b.NextMove++
@@ -92,26 +91,27 @@ func (b *Brain) GetNextMove() (pixel.Matrix, error) {
 		b.velocity.Scaled(5 / math.Sqrt(mag))
 	}
 
-	newPosition := b.position.Add(b.velocity)
-	x, y := newPosition.XY()
-	if x < 0 || y < 0 || x > b.windowBounds.W() || y > b.windowBounds.H() {
-		b.position = pixel.V(pixel.Clamp(x, 0, b.windowBounds.W()), pixel.Clamp(y, 0, b.windowBounds.H()))
-		return b.matrix(), &HitWallError{}
-	}
-	b.position = newPosition
-	if dist(b.position, b.goal) < 10 {
-		b.reachedGoal = true
-	}
-	return b.matrix(), nil
+	//newPosition := b.position.Add(b.velocity)
+	//x, y := newPosition.XY()
+	//if x < 0 || y < 0 || x > b.windowBounds.W() || y > b.windowBounds.H() {
+	//b.position = pixel.V(pixel.Clamp(x, 0, b.windowBounds.W()), pixel.Clamp(y, 0, b.windowBounds.H()))
+	//return b.matrix(), &HitWallError{}
+	//}
+	//b.position = newPosition
+	//if dist(b.position, b.goal) < 10 {
+	//b.reachedGoal = true
+	//}
+	b.position = b.position.Add(b.velocity)
+	return b.Matrix(), nil
 }
 
-func (b *Brain) matrix() pixel.Matrix {
+func (b *Brain) Matrix() pixel.Matrix {
 	mat := pixel.IM
 	return mat.Moved(b.position)
 }
 
 func (b *Brain) Clone(best bool) *Brain {
-	newBrain := NewBrain(b.startPosition, len(b.moves), b.windowBounds, b.goal, b.mutationRate, best)
+	newBrain := NewBrain(b.startPosition, len(b.moves), b.windowBounds, b.mutationRate, best)
 	for n, move := range b.moves {
 		newBrain.moves[n] = move
 	}
@@ -134,6 +134,10 @@ func (b *Brain) GetPosition() pixel.Vec {
 	return b.position
 }
 
+func (b *Brain) SetPosition(position pixel.Vec) {
+	b.position = position
+}
+
 func (b *Brain) Mutate() {
 	rand.Seed(time.Now().UnixNano())
 	for n, _ := range b.moves {
@@ -149,11 +153,11 @@ func dist(a, b pixel.Vec) float64 {
 	return math.Sqrt(dx*dx + dy*dy)
 }
 
-func (b *Brain) CalculateFitness() float64 {
+func (b *Brain) CalculateFitness(goal pixel.Vec) float64 {
 	if b.reachedGoal {
 		b.Fitness = float64(1.0)/16.0 + float64(10000.0)/float64(b.NextMove*b.NextMove)
 	} else {
-		distance := dist(b.position, b.goal)
+		distance := dist(b.position, goal)
 		b.Fitness = 1.0 / (distance * distance)
 	}
 	return b.Fitness
@@ -165,4 +169,8 @@ func (b *Brain) GetSprite() *pixel.Sprite {
 
 func (b *Brain) IsBest() bool {
 	return b.best
+}
+
+func (b *Brain) SetReachedGoal(reached bool) {
+	b.reachedGoal = reached
 }
