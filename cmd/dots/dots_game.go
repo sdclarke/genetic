@@ -84,6 +84,10 @@ func run() {
 	population.SetDrawBest(drawOnlyBest)
 
 	for !win.Closed() {
+		if win.Pressed(pixelgl.KeyQ) {
+			win.Destroy()
+			break
+		}
 		win.Clear(colornames.White)
 		goalMat := pixel.IM
 		goalMat = goalMat.Moved(goal)
